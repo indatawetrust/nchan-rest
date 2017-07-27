@@ -4,7 +4,7 @@ services:
   api:
     container_name: nchan_rest_api
     build: .
-    command: bash -c "npm start"
+    command: bash -c "npm i && npm start"
     volumes:
       - .:/api
       - /app/node_modules
@@ -12,9 +12,12 @@ services:
       - "7000:3000"
     links:
       - nchan
+      - redis
   nchan:
     image: iamaroot/nchan
     volumes:
       - ./nginx:/nginx/conf
     ports:
       - "7001:80"
+  redis:
+    image: redis:latest
