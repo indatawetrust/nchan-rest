@@ -1,7 +1,10 @@
 const router = require('koa-router')(),
       request = require('../helpers/request'),
       {
-        keyControl
+        keyControl,
+        jwtAuthorization,
+        join,
+        leave
       } = require('../middlewares');
 
 router.get('/', async function (ctx, next) {
@@ -10,15 +13,15 @@ router.get('/', async function (ctx, next) {
 	`
 })
 
-router.post('join', keyControl, async function (ctx, next) {
-
+router.post('join', keyControl, join, async function (ctx, next) {
+  const { token } = ctx
 
   ctx.body = {
-    token: true
+    token
   }
 })
 
-router.post('message', keyControl, async function (ctx, next) {
+router.post('message', keyControl, jwtAuthorization, async function (ctx, next) {
   const { body } = ctx.request
 
   await request({
@@ -44,9 +47,7 @@ router.get('info/:id', keyControl, async function (ctx, next) {
   }
 })
 
-router.get('leave', keyControl, async function (ctx, next) {
-
-
+router.get('leave', keyControl, leave, async function (ctx, next) {
   ctx.body = {
     ok: true
   }
