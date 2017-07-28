@@ -10,3 +10,9 @@ npm i -g http-server && http-server demo
 ```
 
 and demo: http://localhost:8080
+
+- [ ] jwt support
+- [ ] /message
+- [ ] /join
+- [ ] /leave
+- [ ] /info/:id
