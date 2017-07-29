@@ -6,7 +6,7 @@ export default async (ctx, next) => {
   try {
     const decoded = jwt.verify(ctx.headers['authorization'].split(' ')[1], 'secret');
 
-    redis.del(decoded.id)
+    redis.hdel(decoded.id)
 
     await next();
   } catch(err) {

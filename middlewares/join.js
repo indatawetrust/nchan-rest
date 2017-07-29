@@ -6,9 +6,12 @@ export default async (ctx, next) => {
 
   try {
     const id = uuidv1(),
-        token = jwt.sign({ id }, 'secret')
+        token = jwt.sign({ id }, 'secret'),
+        {body} = ctx.request
 
-    redis.set(id, token)
+    redis.hmset(id, Object.assign({
+      token,
+    }, body))
 
     ctx.token = token
 
