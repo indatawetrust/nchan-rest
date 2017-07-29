@@ -10,6 +10,7 @@ const onerror = require('koa-onerror');
 const bodyparser = require('koa-bodyparser')();
 const logger = require('koa-logger');
 const cors = require('kcors');
+require('./models')
 
 const index = require('./routes/index');
 

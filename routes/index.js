@@ -1,6 +1,15 @@
 const router = require('koa-router')(),
   request = require('../helpers/request'),
-  {keyControl, jwtAuthorization, join, leave, update} = require('../middlewares');
+  {
+    keyControl,
+    jwtAuthorization,
+    join,
+    leave,
+    update,
+  } = require('../middlewares'),
+  mongoose = require('mongoose'),
+  Room = mongoose.model('Room'),
+  Message = mongoose.model('Message');
 
 router.get('/', async function(ctx, next) {
   ctx.body = `
@@ -16,14 +25,103 @@ router.post('join', keyControl, join, async function(ctx, next) {
   };
 });
 
-router.post('update', keyControl, jwtAuthorization, update, async function(ctx, next) {
+router.post('update', keyControl, jwtAuthorization, update, async function(
+  ctx,
+  next,
+) {
   ctx.body = {
     ok: true,
   };
 });
 
-router.post('message', keyControl, jwtAuthorization, async function(ctx, next) {
+router.post('message/:id', keyControl, jwtAuthorization, async function(
+  ctx,
+  next,
+) {
   const {body} = ctx.request;
+
+  let room = await Room.findOne({
+    users: {
+      $all: [ctx.id, ctx.params.id],
+    },
+  });
+
+  if (!room) {
+    room = await Room({
+      users: [ctx.id, ctx.params.id],
+      seen: [
+        {
+          user_id: ctx.id,
+          is: true,
+        },
+        {
+          user_id: ctx.params.id,
+          is: true,
+        },
+      ],
+      read: [
+        {
+          user_id: ctx.id,
+          is: false,
+        },
+        {
+          user_id: ctx.params.id,
+          is: false,
+        },
+      ],
+    }).save();
+  } else {
+    for (let user_id of room.seen.map(user => user.user_id)) {
+      if (ctx.id != user_id) {
+        await Room.update(
+          {
+            _id: room._id,
+            'read.user_id': user_id,
+          },
+          {
+            $set: {
+              'read.$.is': false,
+            },
+          },
+        );
+      }
+    }
+  }
+
+  let message = await Message({
+    user_id: ctx.id,
+    room_id: room._id,
+    text: body.text,
+    seen: [
+      {
+        user_id: ctx.id,
+        is: true,
+      },
+      {
+        user_id: ctx.params.id,
+        is: true,
+      },
+    ],
+  }).save();
+
+  await Room.update(
+    {
+      _id: room._id,
+    },
+    {
+      $set: {
+        updated_at: message.created_at,
+      },
+    },
+  );
+
+  message = message.toObject();
+
+  if (message.user_id == ctx.id) {
+    message.me = true;
+  } else {
+    message.me = false;
+  }
 
   await request({
     channel: ctx.query.channel,
