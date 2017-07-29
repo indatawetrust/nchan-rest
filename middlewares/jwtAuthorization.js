@@ -11,7 +11,7 @@ export default async (ctx, next) => {
     await new Promise((resolve, reject) => {
       redis.hgetall(decoded.id, (err, data) => {
         if (data.token != ctx.headers['authorization'].split(' ')[1]) reject(err);
-console.log(data)
+
         resolve();
       });
     });
