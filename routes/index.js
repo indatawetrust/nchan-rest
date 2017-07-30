@@ -198,9 +198,9 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
         room.last_user_id = messages[0].user_id;
       }
 
-      delete room.users
-      delete room.read
-      delete room.seen
+      delete room.users;
+      delete room.read;
+      delete room.seen;
 
       rooms[i] = room;
     }
@@ -213,6 +213,122 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
     console.log(err);
     ctx.throw(400, {
       err,
+    });
+  }
+});
+
+router.get('message/:id', keyControl, jwtAuthorization, async function(
+  ctx,
+  next,
+) {
+  try {
+    let total = 0, page = ctx.query.page || 1;
+
+    let room = await Room.findOne({
+      users: {
+        $all: [ctx._id, ctx.params.id],
+      },
+    });
+
+    let me = await User.findOne({
+      _id: ctx._id,
+    }),
+      you = await User.findOne({
+        _id: ctx.params.id,
+      });
+
+    me = me.toObject();
+    delete me.token;
+    you = you.toObject();
+    delete you.token;
+
+    let messages = null;
+
+    if (room) {
+      total = await Message.count({
+        room_id: room._id,
+        seen: {
+          $elemMatch: {
+            user_id: ctx._id,
+            is: true,
+          },
+        },
+      });
+
+      messages = await Message.find({
+        room_id: room._id,
+        seen: {
+          $elemMatch: {
+            user_id: ctx._id,
+            is: true,
+          },
+        },
+      })
+        .sort({created_at: -1})
+        .skip((parseInt(page) - 1) * 8)
+        .limit(8);
+
+      for (let i in messages) {
+        let message = messages[i].toObject();
+
+        if (messages[i].user_id.equals(ctx._id)) {
+          message.me = true;
+          message.user = me;
+          message.user.avatar = '#';
+        } else {
+          message.me = false;
+          message.user = you;
+          message.user.avatar = '#';
+        }
+
+        delete message.seen;
+
+        message.createdAt = message.created_at;
+
+        messages[i] = message;
+      }
+    } else {
+      messages = [];
+    }
+
+    if (room) {
+      let youID = room.users.filter(id => !id.equals(ctx._id))[0];
+
+      room = await Room.update(
+        {
+          _id: room._id,
+          'seen.user_id': ctx._id,
+        },
+        {
+          $set: {
+            'read.$.is': true,
+          },
+        },
+        {
+          new: true,
+        },
+      );
+    }
+
+    let user = await User.findOne({
+      _id: ctx.params.id,
+    });
+
+    user = user.toObject();
+
+    delete user.token;
+
+    ctx.body = {
+      messages,
+      user,
+      page,
+      totalPage: Math.ceil(total / 8),
+      ok: true,
+    };
+  } catch (e) {
+    ctx.throw(400, {
+      error: e,
+      ok: false,
     });
   }
 });
