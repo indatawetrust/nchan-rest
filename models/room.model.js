@@ -9,7 +9,7 @@ const mongoose = require('mongoose'),
   ObjectId = Schema.Types.ObjectId;
 
 const RoomSchema = new Schema({
-  users: [String],
+  users: [ObjectId],
   seen: [
     {
       user_id: ObjectId,
