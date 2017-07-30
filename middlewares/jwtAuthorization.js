@@ -1,5 +1,8 @@
 import redis from '../helpers/redis';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+
+const User = mongoose.model('User');
 
 export default async (ctx, next) => {
   try {
@@ -8,15 +11,14 @@ export default async (ctx, next) => {
       'secret',
     );
 
-    await new Promise((resolve, reject) => {
-      redis.hgetall(decoded.id, (err, data) => {
-        if (data.token != ctx.headers['authorization'].split(' ')[1]) reject(err);
-
-        resolve();
-      });
+    const user = await User.findOne({
+      id: decoded.id,
     });
 
-    ctx.id = decoded.id
+    if (!user) throw 'user not found';
+
+    ctx.id = decoded.id;
+    ctx._id = user._id;
 
     await next();
   } catch (err) {

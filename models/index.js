@@ -4,7 +4,6 @@ mongoose.Promise = global.Promise;
 
 mongoose.connect(`mongodb://mongo/nchan-rest`, (err) => {
 	if (err) {
-		// logger
 	}
 })
 
@@ -17,7 +16,5 @@ try {
 	}
 
 } catch(e ){
-
-	// logger
 
 }

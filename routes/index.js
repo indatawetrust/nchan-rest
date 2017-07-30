@@ -9,6 +9,7 @@ const router = require('koa-router')(),
   } = require('../middlewares'),
   mongoose = require('mongoose'),
   Room = mongoose.model('Room'),
+  User = mongoose.model('User'),
   Message = mongoose.model('Message');
 
 router.get('/', async function(ctx, next) {
@@ -22,6 +23,8 @@ router.post('join', keyControl, join, async function(ctx, next) {
 
   ctx.body = {
     token,
+    _id: ctx._id,
+    ok: true,
   };
 });
 
@@ -42,16 +45,16 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
 
   let room = await Room.findOne({
     users: {
-      $all: [ctx.id, ctx.params.id],
+      $all: [ctx._id, ctx.params.id],
     },
   });
 
   if (!room) {
     room = await Room({
-      users: [ctx.id, ctx.params.id],
+      users: [ctx._id, ctx.params.id],
       seen: [
         {
-          user_id: ctx.id,
+          user_id: ctx._id,
           is: true,
         },
         {
@@ -61,7 +64,7 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
       ],
       read: [
         {
-          user_id: ctx.id,
+          user_id: ctx._id,
           is: false,
         },
         {
@@ -72,7 +75,7 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
     }).save();
   } else {
     for (let user_id of room.seen.map(user => user.user_id)) {
-      if (ctx.id != user_id) {
+      if (ctx._id.equals(user_id)) {
         await Room.update(
           {
             _id: room._id,
@@ -89,12 +92,12 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
   }
 
   let message = await Message({
-    user_id: ctx.id,
+    user_id: ctx._id,
     room_id: room._id,
     text: body.text,
     seen: [
       {
-        user_id: ctx.id,
+        user_id: ctx._id,
         is: true,
       },
       {
@@ -117,7 +120,7 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
 
   message = message.toObject();
 
-  if (message.user_id == ctx.id) {
+  if (message.user_id.equals(ctx._id)) {
     message.me = true;
   } else {
     message.me = false;
@@ -131,6 +134,87 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
   ctx.body = {
     ok: true,
   };
+});
+
+router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
+  try {
+    let page = ctx.query.page || 1;
+
+    let rooms = await Room.find({
+      users: {$in: [ctx._id]},
+      seen: {
+        $elemMatch: {
+          user_id: ctx._id,
+          is: true,
+        },
+      },
+    })
+      .sort({
+        updated_at: -1,
+      })
+      .skip((parseInt(page) - 1) * 8)
+      .limit(8);
+
+    let total = await Room.count({
+      users: {$in: [ctx._id]},
+      seen: {
+        $elemMatch: {
+          user_id: ctx._id,
+          is: true,
+        },
+      },
+    });
+
+    for (let i in rooms) {
+      let room = rooms[i].toObject();
+
+      for (let j in room.users) {
+        if (ctx._id.equals(room.users[j])) {
+          room.users.splice(j, 1);
+        }
+      }
+
+      let user = room.users.shift();
+
+      user = await User.findOne({
+        _id: user,
+      });
+
+      user = user.toObject();
+
+      room.user = user;
+
+      let messages = Message.find({
+        room_id: rooms[i]._id,
+      }).sort({created_at: -1});
+
+      messages = await messages.exec();
+
+      if (messages.length) {
+        room.last_message =
+          messages[0].text.substr(0, 20) +
+          (messages[0].text.length > 20 ? '...' : '');
+
+        room.last_user_id = messages[0].user_id;
+      }
+
+      delete room.users
+      delete room.read
+      delete room.seen
+
+      rooms[i] = room;
+    }
+
+    ctx.body = {
+      ok: true,
+      rooms,
+    };
+  } catch (err) {
+    console.log(err);
+    ctx.throw(400, {
+      err,
+    });
+  }
 });
 
 router.get('info/:id', keyControl, async function(ctx, next) {

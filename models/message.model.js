@@ -9,11 +9,11 @@ const mongoose = require('mongoose'),
      ObjectId = Schema.Types.ObjectId
 
 const MessageSchema = new Schema({
-  user_id   : String,
+  user_id   : ObjectId,
   room_id : ObjectId,
   text : String,
   seen: [{
-     user_id: String,
+     user_id: ObjectId,
      is: Boolean
   }],
   created_at: {

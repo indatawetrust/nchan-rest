@@ -12,13 +12,13 @@ const RoomSchema = new Schema({
   users: [String],
   seen: [
     {
-      user_id: String,
+      user_id: ObjectId,
       is: Boolean,
     },
   ],
   read: [
     {
-      user_id: String,
+      user_id: ObjectId,
       is: Boolean,
     },
   ],
