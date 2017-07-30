@@ -12,7 +12,9 @@ npm i -g http-server && http-server demo
 and demo: http://localhost:8080
 
 - [ ] jwt support
-- [ ] /message/:id
-- [ ] /join
-- [ ] /leave
-- [ ] /info/:id
+- [ ] POST /message/:id
+- [ ] GET /message/:id?page=1
+- [ ] GET /messages?page=1
+- [ ] POST /join
+- [ ] GET /leave
+- [ ] POST /info/:id
