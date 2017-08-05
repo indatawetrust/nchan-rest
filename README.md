@@ -13,6 +13,7 @@ and demo: http://localhost:8080
 
 - [ ] jwt support
 - [ ] POST /message/:id
+- [ ] DELETE /message/:id
 - [ ] GET /message/:id?page=1
 - [ ] GET /messages?page=1
 - [ ] POST /join
