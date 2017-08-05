@@ -244,7 +244,7 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
 
     let messages = null;
 
-    if (room) {
+    if (room && room.seen.filter(({user_id}) => ctx._id.equals(user_id))[0].is) {
       total = await Message.count({
         room_id: room._id,
         seen: {
@@ -294,7 +294,7 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
     if (room) {
       let youID = room.users.filter(id => !id.equals(ctx._id))[0];
 
-      room = await Room.update(
+      await Room.update(
         {
           _id: room._id,
           'seen.user_id': ctx._id,
@@ -323,6 +323,7 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
       user,
       page,
       totalPage: Math.ceil(total / 8),
+      roomId: room._id,
       ok: true,
     };
   } catch (e) {
@@ -344,7 +345,7 @@ router.delete('message/:id', keyControl, jwtAuthorization, async function(
       _id: id,
     });
 
-    if (!message) throw 'message not found'
+    if (!message) throw 'message not found';
 
     await Message.update(
       {
@@ -381,10 +382,43 @@ router.delete('message/:id', keyControl, jwtAuthorization, async function(
     );
 
     ctx.body = {
-      ok: true
-    }
+      ok: true,
+    };
   } catch (e) {
-    ctx.throw(400, e)
+    ctx.throw(400, e);
+  }
+});
+
+router.delete('room/:id', keyControl, jwtAuthorization, async function(
+  ctx,
+  next,
+) {
+  try {
+    const {id} = ctx.params;
+
+    let room = await Room.findOne({
+      _id: id,
+    });
+
+    if (!room) throw 'room not found';
+
+    await Room.update(
+      {
+        _id: id,
+        'seen.user_id': ctx._id,
+      },
+      {
+        $set: {
+          'seen.$.is': false,
+        },
+      },
+    );
+
+    ctx.body = {
+      ok: true,
+    };
+  } catch (e) {
+    ctx.throw(400, e);
   }
 });
 
