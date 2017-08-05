@@ -333,6 +333,61 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
   }
 });
 
+router.delete('message/:id', keyControl, jwtAuthorization, async function(
+  ctx,
+  next,
+) {
+  try {
+    const {id} = ctx.params;
+
+    let message = await Message.findOne({
+      _id: id,
+    });
+
+    if (!message) throw 'message not found'
+
+    await Message.update(
+      {
+        _id: id,
+        'seen.user_id': ctx._id,
+      },
+      {
+        $set: {
+          'seen.$.is': false,
+        },
+      },
+    );
+
+    const messageCount = await Message.find({
+      room_id: message.room_id,
+      seen: {
+        $elemMatch: {
+          user_id: ctx._id,
+          is: true,
+        },
+      },
+    });
+
+    await Room.update(
+      {
+        _id: message.room_id,
+        'seen.user_id': ctx._id,
+      },
+      {
+        $set: {
+          'seen.$.is': false,
+        },
+      },
+    );
+
+    ctx.body = {
+      ok: true
+    }
+  } catch (e) {
+    ctx.throw(400, e)
+  }
+});
+
 router.get('info/:id', keyControl, async function(ctx, next) {
   const {body} = ctx.request;
 
