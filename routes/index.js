@@ -10,7 +10,10 @@ const router = require('koa-router')(),
   mongoose = require('mongoose'),
   Room = mongoose.model('Room'),
   User = mongoose.model('User'),
-  Message = mongoose.model('Message');
+  Message = mongoose.model('Message'),
+  shuff = require('shuff')({
+    host: 'redis'
+  });
 
 router.get('/', async function(ctx, next) {
   ctx.body = `
@@ -18,8 +21,19 @@ router.get('/', async function(ctx, next) {
 	`;
 });
 
+/**
+ * @api {post} /join join request
+ * @apiName UserJoin
+ * @apiGroup User
+ *
+ * @apiSuccess {String} token user jwt.
+ * @apiSuccess {String} _id user _id.
+ * @apiSuccess {Boolean} ok status.
+ */
 router.post('join', keyControl, join, async function(ctx, next) {
   const {token} = ctx;
+
+  await shuff.add(ctx._id.toString())
 
   ctx.body = {
     token,
@@ -28,15 +42,70 @@ router.post('join', keyControl, join, async function(ctx, next) {
   };
 });
 
+/**
+ * @api {post} /update update request
+ * @apiName UserUpdate
+ * @apiGroup User
+ *
+ * @apiParam {Object} update keys and values
+ *
+ * @apiSuccess {Object} changes.
+ * @apiSuccess {Boolean} ok status.
+ */
 router.post('update', keyControl, jwtAuthorization, update, async function(
   ctx,
   next,
 ) {
   ctx.body = {
+    changes: {},
     ok: true,
   };
 });
 
+/**
+ * @api {get} /random random users
+ * @apiName UserRandom
+ * @apiGroup User
+*
+ * @apiSuccess {Array} users.
+ * @apiSuccess {Boolean} ok status.
+ */
+router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
+  try {
+
+    const user_ids = await shuff.generate(5),
+          users = [];
+
+    for (let _id of user_ids) {
+      let user = (await User.findOne({
+        _id
+      })).toObject()
+
+      delete user.token
+
+      users.push(user)
+    }
+
+    ctx.body = {
+      users,
+      ok: true
+    }
+
+  } catch (e) {
+    ctx.throw(400, e)
+  }
+})
+
+/**
+ * @api {post} /message/:id message send
+ * @apiName UserMessage
+ * @apiGroup User
+ *
+ * @apiParam {String} id user id
+ * @apiParam {String} text message text
+ *
+ * @apiSuccess {Boolean} ok status.
+ */
 router.post('message/:id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
@@ -136,6 +205,16 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
   };
 });
 
+/**
+ * @api {get} /messages user messages
+ * @apiName UserMessages
+ * @apiGroup User
+ *
+ * @apiParam {Number} page room page
+ *
+ * @apiSuccess {Array} rooms rooms.
+ * @apiSuccess {Boolean} ok status.
+ */
 router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
     let page = ctx.query.page || 1;
@@ -210,13 +289,26 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
       rooms,
     };
   } catch (err) {
-    console.log(err);
     ctx.throw(400, {
       err,
     });
   }
 });
 
+/**
+ * @api {get} /message/:id get room messages
+ * @apiName UserRoomMessages
+ * @apiGroup User
+ *
+ * @apiParam {Number} page room messages page
+ *
+ * @apiSuccess {Array} messages room messages.
+ * @apiSuccess {Object} user user.
+ * @apiSuccess {Number} page current page.
+ * @apiSuccess {Number} totalPage room messages total page.
+ * @apiSuccess {String} roomId room id.
+ * @apiSuccess {Boolean} ok status.
+ */
 router.get('message/:id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
@@ -334,6 +426,15 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
   }
 });
 
+/**
+ * @api {delete} /message/:id delete message
+ * @apiName UserMessageDelete
+ * @apiGroup User
+ *
+ * @apiParam {String} id message id
+ *
+ * @apiSuccess {Boolean} ok status.
+ */
 router.delete('message/:id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
@@ -389,6 +490,15 @@ router.delete('message/:id', keyControl, jwtAuthorization, async function(
   }
 });
 
+/**
+ * @api {delete} /room/:id delete room
+ * @apiName UserRoomDelete
+ * @apiGroup User
+ *
+ * @apiParam {String} id room id
+ *
+ * @apiSuccess {Boolean} ok status.
+ */
 router.delete('room/:id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
@@ -422,6 +532,16 @@ router.delete('room/:id', keyControl, jwtAuthorization, async function(
   }
 });
 
+/**
+ * @api {get} /info/:id user info
+ * @apiName UserInfo
+ * @apiGroup User
+ *
+ * @apiParam {String} id user id
+ *
+ * @apiSuccess {Object} user user.
+ * @apiSuccess {Boolean} ok status.
+ */
 router.get('info/:id', keyControl, async function(ctx, next) {
   const {body} = ctx.request;
 
@@ -431,11 +551,19 @@ router.get('info/:id', keyControl, async function(ctx, next) {
   });
 
   ctx.body = {
+    user: {},
     ok: true,
   };
 });
 
-router.get('leave', keyControl, leave, async function(ctx, next) {
+/**
+ * @api {get} /leave leave user
+ * @apiName UserLeave
+ * @apiGroup User
+ *
+ * @apiSuccess {Boolean} ok status.
+ */
+router.get('leave', keyControl, jwtAuthorization, leave, async function(ctx, next) {
   ctx.body = {
     ok: true,
   };
