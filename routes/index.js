@@ -189,11 +189,20 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
 
   message = message.toObject();
 
-  if (message.user_id.equals(ctx._id)) {
-    message.me = true;
-  } else {
-    message.me = false;
-  }
+  message.me = true;
+
+  let me = (await User.findOne({
+    _id: ctx._id,
+  })).toObject()
+
+  delete me.token
+
+  message.user = me;
+  message.user.avatar = '#';
+
+  delete message.seen;
+
+  message.createdAt = message.created_at;
 
   await request({
     channel: ctx.query.channel,
@@ -201,6 +210,7 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
   });
 
   ctx.body = {
+    message,
     ok: true,
   };
 });
@@ -415,7 +425,7 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
       user,
       page,
       totalPage: Math.ceil(total / 8),
-      roomId: room._id,
+      roomId: room ? room._id : null,
       ok: true,
     };
   } catch (e) {
