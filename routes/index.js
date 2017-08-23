@@ -1,5 +1,6 @@
 const router = require('koa-router')(),
   request = require('../helpers/request'),
+  cleaner = require('../helpers/cleaner'),
   {
     keyControl,
     jwtAuthorization,
@@ -205,8 +206,9 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
   message.createdAt = message.created_at;
 
   await request({
-    channel: ctx.query.channel,
-    message: body.message,
+    channel: ctx.params.id,
+    message,
+    type: 'NEW_MESSAGE'
   });
 
   ctx.body = {
@@ -227,6 +229,10 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
  */
 router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
+    await cleaner({
+      channel: ctx._id
+    });
+
     let page = ctx.query.page || 1;
 
     let rooms = await Room.find({
