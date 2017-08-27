@@ -74,8 +74,8 @@ router.post('update', keyControl, jwtAuthorization, update, async function(
 router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
 
-    const user_ids = await shuff.generate(5),
-          users = [];
+    let user_ids = await shuff.generate(5, ctx._id.toString()),
+        users = [];
 
     for (let _id of user_ids) {
       let user = (await User.findOne({
@@ -229,9 +229,11 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
  */
 router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
-    await cleaner({
-      channel: ctx._id
-    });
+    try {
+      await cleaner({
+        channel: ctx._id
+      });
+    } catch(e){}
 
     let page = ctx.query.page || 1;
 
@@ -486,17 +488,18 @@ router.delete('message/:id', keyControl, jwtAuthorization, async function(
       },
     });
 
-    await Room.update(
-      {
-        _id: message.room_id,
-        'seen.user_id': ctx._id,
-      },
-      {
-        $set: {
-          'seen.$.is': false,
+    if (messageCount === 0)
+      await Room.update(
+        {
+          _id: message.room_id,
+          'seen.user_id': ctx._id,
         },
-      },
-    );
+        {
+          $set: {
+            'seen.$.is': false,
+          },
+        },
+      );
 
     ctx.body = {
       ok: true,
