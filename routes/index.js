@@ -92,6 +92,7 @@ router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
     }
 
   } catch (e) {
+console.log(e)
     ctx.throw(400, e)
   }
 })
