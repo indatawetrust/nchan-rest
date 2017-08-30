@@ -1,5 +1,6 @@
 const router = require('koa-router')(),
   request = require('../helpers/request'),
+  cleaner = require('../helpers/cleaner'),
   {
     keyControl,
     jwtAuthorization,
@@ -73,8 +74,8 @@ router.post('update', keyControl, jwtAuthorization, update, async function(
 router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
 
-    const user_ids = await shuff.generate(5),
-          users = [];
+    let user_ids = await shuff.generate(5, ctx._id.toString()),
+        users = [];
 
     for (let _id of user_ids) {
       let user = (await User.findOne({
@@ -206,8 +207,9 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
   message.createdAt = message.created_at;
 
   await request({
-    channel: ctx.query.channel,
-    message: body.message,
+    channel: ctx.params.id,
+    message,
+    type: 'NEW_MESSAGE'
   });
 
   ctx.body = {
@@ -228,6 +230,12 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
  */
 router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
+    try {
+      await cleaner({
+        channel: ctx._id
+      });
+    } catch(e){}
+
     let page = ctx.query.page || 1;
 
     let rooms = await Room.find({
@@ -481,17 +489,18 @@ router.delete('message/:id', keyControl, jwtAuthorization, async function(
       },
     });
 
-    await Room.update(
-      {
-        _id: message.room_id,
-        'seen.user_id': ctx._id,
-      },
-      {
-        $set: {
-          'seen.$.is': false,
+    if (messageCount === 0)
+      await Room.update(
+        {
+          _id: message.room_id,
+          'seen.user_id': ctx._id,
         },
-      },
-    );
+        {
+          $set: {
+            'seen.$.is': false,
+          },
+        },
+      );
 
     ctx.body = {
       ok: true,
