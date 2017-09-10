@@ -7,7 +7,8 @@
     "koa": "./node_modules/.bin/runkoa bin/www",
     "pm2": "pm2 start bin/run ",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "doc": "apidoc -i routes && http-server doc"
+    "doc": "apidoc -i routes && http-server doc",
+    "clean": "docker exec -it nchanrest_mongo_1 bash -c \"mongo nchan-rest --eval 'db.dropDatabase()'\" && docker exec -it nchanrest_redis_1 bash -c \"echo FLUSHALL | redis-cli\""
   },
   "dependencies": {
     "co": "^4.6.0",

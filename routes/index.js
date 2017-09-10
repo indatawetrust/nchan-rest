@@ -175,6 +175,16 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
         is: true,
       },
     ],
+    read: [
+      {
+        user_id: ctx._id,
+        is: true,
+      },
+      {
+        user_id: ctx.params.id,
+        is: false,
+      },
+    ],
   }).save();
 
   await Room.update(
@@ -298,6 +308,8 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
       delete room.users;
       delete room.read;
       delete room.seen;
+
+      room.numberOfUnreadMessages = 0;
 
       rooms[i] = room;
     }

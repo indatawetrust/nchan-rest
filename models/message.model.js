@@ -16,6 +16,10 @@ const MessageSchema = new Schema({
      user_id: ObjectId,
      is: Boolean
   }],
+  read: [{
+     user_id: ObjectId,
+     is: Boolean
+  }],
   created_at: {
     type: Date,
     default: Date.now
