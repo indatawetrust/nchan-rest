@@ -213,7 +213,22 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
 
   delete message.seen;
 
-  message.createdAt = message.created_at;
+  message.room = {
+    last_message: message.text,
+    last_user_id: message.user._id,
+    numberOfUnreadMessages: await Message.count({
+      room_id: room._id,
+      read: {
+        $elemMatch: {
+          user_id: ctx.params.id,
+          is: false,
+        },
+      },
+    }),
+    updated_at: message.created_at,
+    user: message.user,
+    _id: message.room_id,
+  }
 
   await request({
     channel: ctx.params.id,
