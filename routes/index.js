@@ -309,7 +309,15 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
       delete room.read;
       delete room.seen;
 
-      room.numberOfUnreadMessages = 0;
+      room.numberOfUnreadMessages = await Message.count({
+        room_id: room._id,
+        read: {
+          $elemMatch: {
+            user_id: ctx._id,
+            is: false,
+          },
+        },
+      });
 
       rooms[i] = room;
     }
@@ -324,6 +332,36 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
     });
   }
 });
+
+router.get('read/:id', keyControl, jwtAuthorization, async function(
+  ctx,
+  next,
+) {
+  try {
+
+    await Message.update(
+      {
+        _id: ctx.params.id,
+        'read.user_id': ctx._id,
+      },
+      {
+        $set: {
+          'read.$.is': true,
+        },
+      }
+    );
+
+    ctx.body = {
+      ok: true,
+    };
+
+  } catch (e) {
+    ctx.throw(400, {
+      error: e,
+      ok: false,
+    });
+  }
+})
 
 /**
  * @api {get} /message/:id get room messages
@@ -430,6 +468,21 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
           new: true,
         },
       );
+
+      await Message.update(
+        {
+          room_id: room._id,
+          'read.user_id': ctx._id,
+        },
+        {
+          $set: {
+            'read.$.is': true,
+          },
+        },
+        {
+          multi: true
+        }
+      )
     }
 
     let user = await User.findOne({
