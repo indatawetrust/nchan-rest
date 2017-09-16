@@ -348,6 +348,39 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
   }
 });
 
+router.get('readall/:room_id', keyControl, jwtAuthorization, async function(
+  ctx,
+  next,
+) {
+  try {
+
+    await Message.update(
+      {
+        room_id: ctx.params.room_id,
+        'read.user_id': ctx._id,
+      },
+      {
+        $set: {
+          'read.$.is': true,
+        },
+      },
+      {
+        multi: true
+      }
+    )
+
+    ctx.body = {
+      ok: true,
+    };
+
+  } catch (e) {
+    ctx.throw(400, {
+      error: e,
+      ok: false,
+    });
+  }
+})
+
 router.get('read/:id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
