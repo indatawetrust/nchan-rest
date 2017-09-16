@@ -25,6 +25,7 @@ export default async (ctx, next) => {
     ctx.body = {
       err,
     };
+console.log(err)
     ctx.status = 400;
   }
 };

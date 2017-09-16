@@ -93,6 +93,7 @@ router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
     }
 
   } catch (e) {
+console.log(e)
     ctx.throw(400, e)
   }
 })
@@ -197,6 +198,18 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
       },
     },
   );
+
+  for (let _id of [ctx._id, ctx.params.id]) {
+    await Room.update(
+      {
+        _id: room._id,
+        'seen.user_id': _id
+      },
+      {
+	'seen.$.is': true
+      }
+    );
+  }
 
   message = message.toObject();
 
