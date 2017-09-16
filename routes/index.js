@@ -93,7 +93,6 @@ router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
     }
 
   } catch (e) {
-console.log(e)
     ctx.throw(400, e)
   }
 })
@@ -232,7 +231,7 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
     numberOfUnreadMessages: await Message.count({
       room_id: room._id,
       read: {
-        $all: {
+        $elemMatch: {
           user_id: ctx.params.id,
           is: false,
         },
@@ -278,7 +277,7 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
     let rooms = await Room.find({
       users: {$in: [ctx._id]},
       seen: {
-        $all: {
+        $elemMatch: {
           user_id: ctx._id,
           is: true,
         },
@@ -293,7 +292,7 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
     let total = await Room.count({
       users: {$in: [ctx._id]},
       seen: {
-        $all: {
+        $elemMatch: {
           user_id: ctx._id,
           is: true,
         },
@@ -340,7 +339,7 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
       room.numberOfUnreadMessages = await Message.count({
         room_id: room._id,
         read: {
-          $all: {
+          $elemMatch: {
             user_id: ctx._id,
             is: false,
           },
@@ -469,7 +468,7 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
       total = await Message.count({
         room_id: room._id,
         seen: {
-          $all: {
+          $elemMatch: {
             user_id: ctx._id,
             is: true,
           },
@@ -479,7 +478,7 @@ router.get('message/:id', keyControl, jwtAuthorization, async function(
       messages = await Message.find({
         room_id: room._id,
         seen: {
-          $all: {
+          $elemMatch: {
             user_id: ctx._id,
             is: true,
           },
@@ -607,7 +606,7 @@ router.delete('message/:id', keyControl, jwtAuthorization, async function(
     const messageCount = await Message.find({
       room_id: message.room_id,
       seen: {
-        $all: {
+        $elemMatch: {
           user_id: ctx._id,
           is: true,
         },
