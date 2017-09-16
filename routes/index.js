@@ -199,6 +199,18 @@ router.post('message/:id', keyControl, jwtAuthorization, async function(
     },
   );
 
+  for (let _id of [ctx._id, ctx.params.id]) {
+    await Room.update(
+      {
+        _id: room._id,
+        'seen.user_id': _id
+      },
+      {
+	'seen.$.is': true
+      }
+    );
+  }
+
   message = message.toObject();
 
   message.me = true;
