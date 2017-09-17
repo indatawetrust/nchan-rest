@@ -376,6 +376,13 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
   }
 });
 
+/**
+ * @api {get} /readall/:room_id read all message
+ * @apiName ReadAllMessage
+ * @apiGroup Message
+*
+ * @apiSuccess {Boolean} ok status.
+ */
 router.get('readall/:room_id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
@@ -409,6 +416,13 @@ router.get('readall/:room_id', keyControl, jwtAuthorization, async function(
   }
 })
 
+/**
+ * @api {get} /read/:id read message
+ * @apiName ReadMessage
+ * @apiGroup Message
+*
+ * @apiSuccess {Boolean} ok status.
+ */
 router.get('read/:id', keyControl, jwtAuthorization, async function(
   ctx,
   next,
