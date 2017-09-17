@@ -74,7 +74,7 @@ router.post('update', keyControl, jwtAuthorization, update, async function(
 router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
 
-    let ignoreUsers = await Room.find({
+    let ignoreUsers = (await Room.find({
       users: {$in: [ctx._id]},
       seen: {
         $elemMatch: {
@@ -82,7 +82,7 @@ router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
           is: true,
         },
       },
-    }).map(room => {
+    })).map(room => {
       let index = room.users.indexOf(ctx._id)
 
       room.users.splice(index, 1)
