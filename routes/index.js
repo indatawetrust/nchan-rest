@@ -91,7 +91,7 @@ router.post('update', keyControl, jwtAuthorization, async function(
    for (let _id of connectUsers)
      await request({
         channel: _id,
-        message: body,
+        message: Object.assign(body,{ user_id: ctx._id }),
         type: 'UPDATE_USER'
       });
   
