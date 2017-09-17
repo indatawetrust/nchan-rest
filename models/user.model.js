@@ -12,6 +12,8 @@ const UserSchema = new Schema({
 	username 	: String,
 	id 	: String,
 	token 	: String,
+	about: String,
+	photo: String,
 	created_at: {
     type: Date,
     default: Date.now

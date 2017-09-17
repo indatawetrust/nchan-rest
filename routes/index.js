@@ -53,12 +53,28 @@ router.post('join', keyControl, join, async function(ctx, next) {
  * @apiSuccess {Object} changes.
  * @apiSuccess {Boolean} ok status.
  */
-router.post('update', keyControl, jwtAuthorization, update, async function(
+router.post('update', keyControl, jwtAuthorization, async function(
   ctx,
   next,
 ) {
+
+  const {body} = ctx.request
+
+  for (let key in body) {
+    if (['username', 'about', 'photo'].indexOf(key) == -1) delete body[key]
+  }
+
+  await User.update(
+    {
+      _id: ctx._id,
+    },
+    {
+      $set: body,
+    },
+  );
+
   ctx.body = {
-    changes: {},
+    changes: body,
     ok: true,
   };
 });
@@ -74,7 +90,7 @@ router.post('update', keyControl, jwtAuthorization, update, async function(
 router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
 
-    let ignoreUsers = await Room.find({
+    let ignoreUsers = (await Room.find({
       users: {$in: [ctx._id]},
       seen: {
         $elemMatch: {
@@ -82,7 +98,7 @@ router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
           is: true,
         },
       },
-    }).map(room => {
+    })).map(room => {
       let index = room.users.indexOf(ctx._id)
 
       room.users.splice(index, 1)
