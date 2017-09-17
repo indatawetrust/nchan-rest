@@ -74,7 +74,23 @@ router.post('update', keyControl, jwtAuthorization, update, async function(
 router.get('random', keyControl, jwtAuthorization, async function(ctx, next) {
   try {
 
-    let user_ids = await shuff.generate(5, ctx._id.toString()),
+    let ignoreUsers = await Room.find({
+      users: {$in: [ctx._id]},
+      seen: {
+        $elemMatch: {
+          user_id: ctx._id,
+          is: true,
+        },
+      },
+    }).map(room => {
+      let index = room.users.indexOf(ctx._id)
+
+      room.users.splice(index, 1)
+
+      return room.users.map(_id => _id.toString())
+    }).reduce((a,b) => a.concat(b))
+
+    let user_ids = await shuff.generate(5, [ctx._id.toString(), ...ignoreUsers]),
         users = [];
 
     for (let _id of user_ids) {
