@@ -735,6 +735,21 @@ router.delete('room/:id', keyControl, jwtAuthorization, async function(
         },
       },
     );
+    
+    await Message.update(
+      {
+        room_id: id,
+        'seen.user_id': ctx._id
+      },
+      {
+        $set: {
+          'seen.$.is': false
+        }
+      },
+      {
+        multi: true
+      }
+    );
 
     ctx.body = {
       ok: true,
