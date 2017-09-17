@@ -5,8 +5,7 @@ const router = require('koa-router')(),
     keyControl,
     jwtAuthorization,
     join,
-    leave,
-    update,
+    leave
   } = require('../middlewares'),
   mongoose = require('mongoose'),
   Room = mongoose.model('Room'),
@@ -73,6 +72,29 @@ router.post('update', keyControl, jwtAuthorization, async function(
     },
   );
 
+   let connectUsers = (await Room.find({
+      users: {$in: [ctx._id]},
+      seen: {
+        $elemMatch: {
+          user_id: ctx._id,
+          is: true,
+        },
+      },
+    })).map(room => {
+      let index = room.users.indexOf(ctx._id)
+
+      room.users.splice(index, 1)
+
+      return room.users.map(_id => _id.toString())
+    }).reduce((a,b) => a.concat(b))
+   
+   for (let _id of connectUsers)
+     await request({
+        channel: _id,
+        message: body,
+        type: 'UPDATE_USER'
+      });
+  
   ctx.body = {
     changes: body,
     ok: true,
@@ -342,12 +364,12 @@ router.get('messages', keyControl, jwtAuthorization, async function(ctx, next) {
 
       let user = room.users.shift();
 
-      user = await User.findOne({
+      user = (await User.findOne({
         _id: user,
-      });
+      })).toObject();
 
-      user = user.toObject();
-
+      delete user.token;
+ 
       room.user = user;
 
       let messages = Message.find({
@@ -732,16 +754,17 @@ router.delete('room/:id', keyControl, jwtAuthorization, async function(
  * @apiSuccess {Object} user user.
  * @apiSuccess {Boolean} ok status.
  */
-router.get('info/:id', keyControl, async function(ctx, next) {
+router.get('info/:id', keyControl, jwtAuthorization, async function(ctx, next) {
   const {body} = ctx.request;
+  
+  let user = (await User.findOne({
+    _id: ctx.params.id
+  })).toObject();
 
-  await request({
-    channel: ctx.query.channel,
-    message: body.message,
-  });
+  delete user.token
 
   ctx.body = {
-    user: {},
+    user,
     ok: true,
   };
 });
